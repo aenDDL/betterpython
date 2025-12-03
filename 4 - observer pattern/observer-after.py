@@ -1,21 +1,28 @@
-from api_v2.slack_listener import setup_slack_event_handlers
-from api_v2.log_listener import setup_log_event_handlers
-from api_v2.email_listener import setup_email_event_handlers
-
-from api_v2.user import register_new_user, password_forgotten
-from api_v2.plan import upgrade_plan
-
-# initialize the event structure
-setup_slack_event_handlers()
-setup_log_event_handlers()
-setup_email_event_handlers()
+from api_v3.user import register_new_user, password_forgotten, upgrade_plan
+from api_v3 import services 
 
 
-# register a new user
-register_new_user("Arjan", "BestPasswordEva", "hi@arjanegges.com")
+services.register_events()
 
-# send a password reset message
-password_forgotten("hi@arjanegges.com")
 
-# upgrade the plan
-upgrade_plan("hi@arjanegges.com")
+# example endpoints
+def user_create() -> None:
+    register_new_user("Arjan", "BestPasswordEva", "hi@arjanegges.com")
+
+def user_password_forget() -> None:
+    password_forgotten("hi@arjanegges.com")
+
+def user_plan_upgrade() -> None:
+    upgrade_plan("hi@arjanegges.com")
+
+
+def main() -> None:
+    user_create()
+    user_password_forget()
+    user_plan_upgrade()
+
+
+if __name__ == "__main__":
+    main()
+    
+
