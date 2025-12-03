@@ -1,49 +1,46 @@
-from abc import ABC, abstractmethod
+from typing import Protocol
+from dataclasses import dataclass, field
 
 
-class Switchable(ABC):
-    @abstractmethod
-    def turn_on(self):
-        pass
+class Switchable(Protocol):
+    def turn_on(self) -> None: ...
 
-    @abstractmethod
-    def turn_off(self):
-        pass
+    def turn_off(self) -> None: ...
 
 
-class LightBulb(Switchable):
-    def turn_on(self):
-        print("LightBulb: turned on...")
-
-    def turn_off(self):
-        print("LightBulb: turned off...")
+class Light(Switchable):
+    def turn_on(self) -> None:
+        print("Light turned on.")
+    
+    def turn_off(self) -> None:
+        print("Light turned off.")
 
 
 class Fan(Switchable):
-    def turn_on(self):
-        print("Fan: turned on...")
-
-    def turn_off(self):
-        print("Fan: turned off...")
-
-
-class ElectricPowerSwitch:
-
-    def __init__(self, c: Switchable):
-        self.client = c
-        self.on = False
-
-    def press(self):
-        if self.on:
-            self.client.turn_off()
-            self.on = False
-        else:
-            self.client.turn_on()
-            self.on = True
+    def turn_on(self) -> None:
+        print("Fan turned on.")
+    
+    def turn_off(self) -> None:
+        print("Fan turned off.")
 
 
-l = LightBulb()
-f = Fan()
-switch = ElectricPowerSwitch(f)
-switch.press()
-switch.press()
+@dataclass
+class Switch:
+    device: Switchable
+    is_switched: bool = field(default=False)
+
+    def switch(self) -> None:
+        self.device.turn_on() if self.is_switched else self.device.turn_off()
+        self.is_switched = not self.is_switched
+
+
+def main() -> None:
+    device = Light()
+    switch = Switch(device=device)
+
+    for _ in range(0, 10):
+        switch.switch()
+
+
+if __name__ == "__main__":
+    main()

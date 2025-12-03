@@ -1,89 +1,61 @@
-from dataclasses import dataclass, field
 import string
 import random
-from typing import List, Callable
+from dataclasses import dataclass, field
+from typing import Callable
 
 
-def generate_id(length: int = 8) -> str:
-    # helper function for generating an id
-    return ''.join(random.choices(string.ascii_uppercase, k=length))
+def generate_uid(lenght: int = 8) -> str:
+    return ''.join(random.choices(string.ascii_uppercase, k=lenght))
 
 
-@dataclass
-class SupportTicket:
-    id: str = field(init=False, default_factory=generate_id)
+@dataclass(kw_only=True, frozen=True, slots=True)
+class Ticket:
+    uid: str = field(default_factory=generate_uid)
     customer: str
     issue: str
 
-
-SupportTickets = List[SupportTicket]
-
-Ordering = Callable[[SupportTickets], SupportTickets]
+    def __str__(self) -> str:
+        return f"Processed {self.uid} ticket from {self.customer} with following issue: {self.issue}"
 
 
-def fifo_ordering(list: SupportTickets) -> SupportTickets:
-    return list.copy()
+sort_fn = Callable[[list[Ticket]], list[Ticket]]
 
+def sort_normal(tickets: list[Ticket]) -> list[Ticket]:
+    return tickets[:]
 
-def filo_ordering(list: SupportTickets) -> SupportTickets:
-    list_copy = list.copy()
-    list_copy.reverse()
-    return list_copy
+def sort_reverse(tickets: list[Ticket]) -> list[Ticket]:
+    return tickets[::-1]
 
-
-def random_ordering(list: SupportTickets) -> SupportTickets:
-    list_copy = list.copy()
-    random.shuffle(list_copy)
-    return list_copy
-
-
-def blackhole_ordering(_: SupportTickets) -> SupportTickets:
+def sort_blackhole(_: list[Ticket]) -> list[Ticket]:
     return []
 
 
-class CustomerSupport:
+@dataclass
+class Support:
+    tickets: list[Ticket] = field(default_factory=list)
+    
+    def add_ticket(self, customer: str, issue: str) -> None:
+        ticket = Ticket(customer=customer, issue=issue)
+        self.tickets.append(ticket)
+    
+    def process_support(self, method: sort_fn) -> None:
+        tickets = method(self.tickets)
 
-    def __init__(self):
-        self.tickets: SupportTickets = []
-
-    def create_ticket(self, customer, issue):
-        self.tickets.append(SupportTicket(customer, issue))
-
-    def process_tickets(self, ordering: Ordering):
-        # create the ordered list
-        ticket_list = ordering(self.tickets)
-
-        # if it's empty, don't do anything
-        if len(ticket_list) == 0:
-            print("There are no tickets to process. Well done!")
-            return
-
-        # go through the tickets in the list
-        for ticket in ticket_list:
-            self.process_ticket(ticket)
-
-    def process_ticket(self, ticket: SupportTicket):
-        print("==================================")
-        print(f"Processing ticket id: {ticket.id}")
-        print(f"Customer: {ticket.customer}")
-        print(f"Issue: {ticket.issue}")
-        print("==================================")
+        if len(tickets) == 0:
+            print("No tickets to process: free day!")
+        for ticket in tickets:
+            print(ticket)
 
 
 def main() -> None:
-    # create the application
-    app = CustomerSupport()
-
-    # register a few tickets
-    app.create_ticket("John Smith", "My computer makes strange sounds!")
-    app.create_ticket("Linus Sebastian",
-                      "I can't upload any videos, please help.")
-    app.create_ticket(
-        "Arjan Egges", "VSCode doesn't automatically solve my bugs.")
-
-    # process the tickets
-    app.process_tickets(random_ordering)
+    support = Support()
+    support.add_ticket("alan", "teams not working")
+    support.add_ticket("alan", "keyboard got destroyed")
+    
+    for method in [sort_normal, sort_reverse, sort_blackhole]:
+        support.process_support(method)
+        print('-'* 40)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
