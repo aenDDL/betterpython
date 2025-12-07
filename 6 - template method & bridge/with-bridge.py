@@ -1,72 +1,75 @@
+from typing import List, Protocol
 from abc import ABC, abstractmethod
-from typing import List
+from dataclasses import dataclass
 
-class Exchange(ABC):
-    @abstractmethod
-    def connect(self):
-        pass
 
-    @abstractmethod
-    def get_market_data(self, coin: str) -> List[float]:
-        pass
+class Exchange(Protocol):
+    def connect(self) -> None: ...
+    def get_prices(self) -> List[float]: ...
 
 class Binance(Exchange):
-    def connect(self):
-        print(f"Connecting to Binance exchange...")
+    def connect(self) -> None:
+        print("Connecting to Binance...")
 
-    def get_market_data(self, coin: str) -> List[float]:
-        return [10, 12, 18, 14]
+    def get_prices(self) -> List[float]:
+        return [10.0, 12.5, 11.0, 13.0, 9.5]
 
-class Coinbase(Exchange):
-    def connect(self):
-        print(f"Connecting to Coinbase exchange...")
+class Bybit(Exchange):
+    def connect(self) -> None:
+        print("Connecting to Bybit...")
 
-    def get_market_data(self, coin: str) -> List[float]:
-        return [10, 12, 18, 20]
+    def get_prices(self) -> List[float]:
+        return [11.0, 12.0, 10.5, 14.0, 9.0]
 
 
 class TradingBot(ABC):
+    # TODO: not sure if ABC > Protocol: thing to study for me in the future
+    exchange: Exchange
 
-    def __init__(self, exchange: Exchange):
-        self.exchange = exchange
+    @abstractmethod
+    def sell(self, prices: List[float]) -> bool: ...
 
-    def check_prices(self, coin: str):
+    @abstractmethod
+    def buy(self, prices: List[float]) -> bool: ...
+
+    def run(self) -> None:
         self.exchange.connect()
-        prices = self.exchange.get_market_data(coin)
-        should_buy = self.should_buy(prices)
-        should_sell = self.should_sell(prices)
-        if should_buy:
-            print(f"You should buy {coin}!")
-        elif should_sell:
-            print(f"You should sell {coin}!")
+        prices = self.exchange.get_prices()
+
+        if self.sell(prices):
+            print("Bot decided to SELL")
+        elif self.buy(prices):
+            print("Bot decided to BUY")
         else:
-            print(f"No action needed for {coin}.")
+            print("Bot decided to do nothing")
 
-    @abstractmethod
-    def should_buy(self, prices: List[float]) -> bool:
-        pass
+@dataclass(frozen=True, slots=True)
+class MinMaxBot(TradingBot):
+    exchange: Exchange 
 
-    @abstractmethod
-    def should_sell(self, prices: List[float]) -> bool:
-        pass
-
-class AverageTrader(TradingBot):
-    def list_average(self, l: List[float]) -> float:
-        return sum(l) / len(l)
-
-    def should_buy(self, prices: List[float]) -> bool:
-        return prices[-1] < self.list_average(prices)
-
-    def should_sell(self, prices: List[float]) -> bool:
-        return prices[-1] > self.list_average(prices)
-
-class MinMaxTrader(TradingBot):
-
-    def should_buy(self, prices: List[float]) -> bool:
-        return prices[-1] == min(prices)
-
-    def should_sell(self, prices: List[float]) -> bool:
+    def sell(self, prices: List[float]) -> bool:
         return prices[-1] == max(prices)
 
-application = AverageTrader(Coinbase())
-application.check_prices("BTC/USD")
+    def buy(self, prices: List[float]) -> bool:
+        return prices[-1] == min(prices)
+
+@dataclass(frozen=True, slots=True)
+class AvgBot(TradingBot):
+    exchange: Exchange
+
+    def _avg(self, prices: List[float]) -> float:
+        return sum(prices) / len(prices) if prices else 0.0
+
+    def sell(self, prices: List[float]) -> bool:
+        return prices[-1] > self._avg(prices)
+
+    def buy(self, prices: List[float]) -> bool:
+        return prices[-1] < self._avg(prices)
+
+
+def main() -> None:
+    bot = MinMaxBot(exchange=Binance())
+    bot.run()
+
+if __name__ == "__main__":
+    main()
